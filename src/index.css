@@ -1,0 +1,12 @@
+/* MUI's CssBaseline handles the reset; this covers only what it leaves out. */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Long class/subject names in table cells should not be able to widen the layout. */
+#root {
+  isolation: isolate;
+}
