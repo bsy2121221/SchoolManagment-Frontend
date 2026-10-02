@@ -1,5 +1,6 @@
 import { baseApi } from '@/app/baseApi'
-import { LIST_ID } from '@/app/tags'
+import { LIST_ID, TAG_TYPES } from '@/app/tags'
+import { schoolScopeChanged } from '@/features/auth/authSlice'
 import type { PaginatedResponse } from '@/types/api'
 import type {
   PlatformStats,
@@ -204,30 +205,45 @@ export const schoolsApi = baseApi.injectEndpoints({
     /**
      * POST /api/Schools/{id}/switch and POST /api/Schools/exit-switch.
      *
-     * Implemented for completeness, but **no screen offers them yet, on purpose.**
-     * The controller's own remarks say why: the switch reissues the access token with
-     * a `school_id`, but the tenant modules are guarded by `[Authorize(Roles =
-     * "Admin")]` and the AdminOrTeacher / AllSchoolUsers policies, none of which name
-     * SuperAdmin. So a switched platform administrator still gets 403 from Students,
-     * Classes, Teachers and the rest.
+     * **Offered by one screen only: Settings.** The switch reissues the access token with
+     * a `school_id`, but the tenant modules are guarded by `[Authorize(Roles = "Admin")]`
+     * and the AdminOrTeacher / AllSchoolUsers policies, none of which name SuperAdmin. So a
+     * switched platform administrator still gets 403 from Students, Classes, Teachers and
+     * the rest, and no "manage this school" button exists. SettingsController and
+     * DashboardController are grid-only, which makes them the two places a switch is
+     * useful, and the Settings page is where the school picker is.
      *
-     * A button labelled "manage this school" that leads to a wall of 403s is worse
-     * than no button. Making it work means adding SuperAdmin to eleven other
-     * controllers' role guards -- an API change, and not this module's to make.
-     *
-     * Note also that these return a bare access token rather than a LoginResponse, so
-     * a caller cannot dispatch `sessionRefreshed` with it; wiring this up properly
-     * needs a dedicated reducer that replaces the access token and the school fields
-     * while leaving the refresh token and the permission grid alone.
+     * These return a bare access token rather than a LoginResponse, so `onQueryStarted`
+     * stores it through `schoolScopeChanged`, which replaces the token and the school fields
+     * and leaves the refresh token and the grid alone. Every cached read was fetched for
+     * the old scope, so every tag is invalidated **after** the new token is in the store.
+     * Invalidating through `invalidatesTags` instead could refetch with the old token still
+     * in place.
      */
     switchSchool: build.mutation<SchoolSession, number>({
       query: (schoolId) => ({ url: `/schools/${schoolId}/switch`, method: 'POST' }),
-      invalidatesTags: ['Auth'],
+      onQueryStarted: async (_schoolId, { dispatch, queryFulfilled }) => {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(schoolScopeChanged(data))
+          dispatch(baseApi.util.invalidateTags([...TAG_TYPES]))
+        } catch {
+          // The caller's unwrap() reports the failure. The scope is unchanged.
+        }
+      },
     }),
 
     exitSchoolSwitch: build.mutation<SchoolSession, void>({
       query: () => ({ url: '/schools/exit-switch', method: 'POST' }),
-      invalidatesTags: ['Auth'],
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(schoolScopeChanged(data))
+          dispatch(baseApi.util.invalidateTags([...TAG_TYPES]))
+        } catch {
+          // The caller's unwrap() reports the failure. The scope is unchanged.
+        }
+      },
     }),
   }),
 })

@@ -205,7 +205,7 @@ export interface SchoolAdminResult {
  *
  * Only the access token is reissued; the refresh token knows nothing of the switch,
  * so the scope lasts until the access token expires and then drops back to platform
- * scope. See the note in schoolsApi.ts on why no screen offers this yet.
+ * scope. The Settings screen is the one place that offers it; see schoolsApi.ts.
  */
 export interface SchoolSession {
   schoolId: number | null

@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { MODULES } from '@/types/enums'
 import type { ModuleName } from '@/types/enums'
+import type { SchoolSession } from '@/features/schools/types'
 import type {
   AuthState,
   LoginResponse,
@@ -152,6 +153,25 @@ const authSlice = createSlice({
     },
 
     /**
+     * A SuperAdmin entering or leaving a school (`POST /schools/{id}/switch`,
+     * `/schools/exit-switch`).
+     *
+     * Those endpoints reissue the access token alone, so only it and the school fields
+     * change. The refresh token and the grid are left as they are. The refresh token does
+     * not know about the switch, so the next token refresh returns the session to platform
+     * scope through `sessionRefreshed`, and screens that depend on the scope must read
+     * `user.schoolId` instead of assuming it lasts.
+     */
+    schoolScopeChanged(state, action: PayloadAction<SchoolSession>) {
+      state.accessToken = action.payload.accessToken
+      if (state.user) {
+        state.user.schoolId = action.payload.schoolId
+        state.user.schoolCode = action.payload.schoolCode
+        state.user.schoolName = action.payload.schoolName
+      }
+    },
+
+    /**
      * Clears the forced-change gate after /auth/change-password succeeds. That
      * endpoint returns no new token, and the token carries no such flag, so the
      * client is the only place this can be cleared.
@@ -175,6 +195,7 @@ export const {
   sessionEstablished,
   sessionRefreshed,
   permissionsUpdated,
+  schoolScopeChanged,
   passwordChangeSatisfied,
   loggedOut,
 } = authSlice.actions

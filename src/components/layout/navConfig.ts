@@ -15,6 +15,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook'
 import PersonIcon from '@mui/icons-material/Person'
 import PublicIcon from '@mui/icons-material/Public'
 import SchoolIcon from '@mui/icons-material/School'
+import SettingsIcon from '@mui/icons-material/Settings'
 import type { SvgIconComponent } from '@mui/icons-material'
 import { ROLES } from '@/types/enums'
 import type { ModuleName } from '@/types/enums'
@@ -55,8 +56,6 @@ export interface NavItem {
  * only the grid. No user ever sees both sets.
  *
  * Still absent:
- *   Settings — SettingsController exists, so this is buildable and simply has no screen
- *              yet.
  *   Reports  — genuinely unbuildable: `Reports` is a permission module with no
  *              endpoints of its own. Only GET /api/Dashboard/stats reads it.
  */
@@ -65,9 +64,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Dashboard',
     to: '/',
     icon: DashboardIcon,
-    // A SuperAdmin arriving at '/' is redirected to /platform, so offering both would be
-    // two links to one page.
-    excludeRoles: [ROLES.SuperAdmin],
+    // Everyone: GET /api/Dashboard has no guard and picks its sections from the caller.
     section: 'Overview',
   },
   {
@@ -208,6 +205,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     // A school admin would get a read-only view of other schools' roles, so the entry is
     // the SuperAdmin's. See FRONTEND_PLAN.md §7.5 and §7.58.
     roles: [ROLES.SuperAdmin],
+    section: 'Administration',
+  },
+  {
+    label: 'Settings',
+    to: '/settings',
+    icon: SettingsIcon,
+    // The grid alone: seeded for Admin and SuperAdmin. A SuperAdmin picks a school on the page.
+    module: 'Settings',
     section: 'Administration',
   },
 ]

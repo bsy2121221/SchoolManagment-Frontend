@@ -28,6 +28,14 @@ export const TAG_TYPES = [
   'Result',
   'Fee',
   'Schedule',
+  /** One school's Settings rows, and the grading scale assembled from them. */
+  'Setting',
+  /**
+   * `GET /api/Dashboard`. Counts from every module, so no single write is worth
+   * invalidating it; it is dropped on a change of school scope and otherwise left to
+   * `refetchOnMountOrArgChange`.
+   */
+  'Dashboard',
 ] as const
 
 export type TagType = (typeof TAG_TYPES)[number]

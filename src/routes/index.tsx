@@ -5,13 +5,12 @@ import { lazy } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { RequireAnonymous, RequireAuth, RequirePermission, RequireRole } from '@/features/auth/guards'
-import { HomeRedirect } from '@/pages/HomeRedirect'
 import { ROLES } from '@/types/enums'
 
 // Lazy so each module ships as its own chunk. AppShell's Suspense boundary catches these.
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const ChangePasswordPage = lazy(() => import('@/features/auth/pages/ChangePasswordPage'))
-const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
 const ForbiddenPage = lazy(() => import('@/pages/ForbiddenPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
@@ -86,6 +85,7 @@ const ReceiptPage = lazy(() => import('@/features/fees/pages/ReceiptPage'))
 const SchedulePage = lazy(() => import('@/features/schedule/pages/SchedulePage'))
 
 // Phase 14 -- Roles. The last module; PENDING_MODULES and its placeholder page went with it.
+const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage'))
 const RoleListPage = lazy(() => import('@/features/roles/pages/RoleListPage'))
 const RoleDetailsPage = lazy(() => import('@/features/roles/pages/RoleDetailsPage'))
 
@@ -108,18 +108,11 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           /**
-           * A SuperAdmin is sent to /platform from here; everyone else gets the school
-           * dashboard. See HomeRedirect for why the decision lives in the route rather
-           * than in LoginPage.
+           * The dashboard, for every role including the SuperAdmin. `GET /api/Dashboard`
+           * returns the platform section to a SuperAdmin with no school in scope, so there is
+           * no longer a separate landing page to redirect them to; /platform is linked from it.
            */
-          {
-            index: true,
-            element: (
-              <HomeRedirect>
-                <DashboardPage />
-              </HomeRedirect>
-            ),
-          },
+          { index: true, element: <DashboardPage /> },
           { path: 'forbidden', element: <ForbiddenPage /> },
 
           /**
@@ -469,6 +462,20 @@ export const router = createBrowserRouter([
               { index: true, element: <RoleListPage /> },
               { path: ':roleId', element: <RoleDetailsPage /> },
             ],
+          },
+
+          /**
+           * /settings — the grid only. SettingsController checks Settings:* and nothing else,
+           * seeded for Admin and SuperAdmin. A SuperAdmin has no school of their own, so the
+           * page offers a school switch first; the switched token is what scopes every call.
+           */
+          {
+            path: 'settings',
+            element: (
+              <RequirePermission module="Settings">
+                <SettingsPage />
+              </RequirePermission>
+            ),
           },
 
           { path: '404', element: <NotFoundPage /> },
